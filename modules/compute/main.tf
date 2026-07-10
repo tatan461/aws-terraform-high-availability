@@ -61,7 +61,7 @@ resource "aws_autoscaling_group" "web" {
   name_prefix         = "${var.environment}-asg-"
   vpc_zone_identifier = var.public_subnet_ids
   target_group_arns   = [var.target_group_arn]
-  
+
   desired_capacity = 2
   max_size         = 3
   min_size         = 2
