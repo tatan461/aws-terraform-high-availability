@@ -8,11 +8,19 @@ The main goal of this architecture is to separate public-facing entry points fro
 
 This setup provisions a complete network and compute stack from scratch:
 
-*   **VPC Topology:** A custom VPC spanning two Availability Zones. It isolates traffic into public and private subnet pairs.
+*   **VPC Topology:** A custom VPC spanning two Availability Zones. It isolates traffic into public subnet pairs.
 *   **Ingress Control:** An Application Load Balancer (ALB) sits in the public subnets to distribute incoming HTTP traffic.
-*   **Auto Scaling:** An Auto Scaling Group (ASG) manages EC2 instances inside the private subnets. It scales between 2 and 4 instances based on demand.
-*   **Strict Security Groups:** The private web instances do not accept traffic from the internet. Their security group only allows inbound traffic originating from the ALB's security group.
+*   **Auto Scaling:** An Auto Scaling Group (ASG) manages EC2 instances inside the public subnets. It scales between 2 and 3 instances based on demand.
+*   **Strict Security Groups:** The web instances do not accept traffic directly from the internet. Their security group only allows inbound traffic originating from the ALB's security group.
 *   **Cost Optimization:** Instances run on AWS Graviton (`t4g.micro`) ARM64 architecture, lowering baseline computing costs compared to standard x86 instances.
+
+## Automation (CI/CD)
+
+This repository includes a continuous integration pipeline powered by **GitHub Actions** (`.github/workflows/terraform.yml`). 
+
+On every `push` or `pull_request` to the `main` branch, the runner automatically executes:
+1.  **Code Linting:** Validates that HCL files match standard HashiCorp formatting conventions via `terraform fmt`.
+2.  **Syntax Validation:** Runs a formal sanity check on the code configuration using `terraform validate` to catch configuration defects before cloud deployment.
 
 ## Repository Structure
 
@@ -23,6 +31,7 @@ The configuration is modularized to separate core networking from application lo
 ├── providers.tf            # AWS provider definition
 ├── variables.tf            # Top-level input variables
 ├── outputs.tf              # Returns the live ALB DNS endpoint
+├── .gitignore              # Prevents state tracking files and secrets from leaking
 └── modules/
     ├── vpc/                # Subnets, Internet Gateway, and Route Tables
     ├── alb/                # Load Balancer, Listener, and Target Group
@@ -64,8 +73,3 @@ To remove all provisioned resources and avoid ongoing AWS billing, run:
 ```bash
 terraform destroy
 ```
-
-## Design Decisions & Trade-offs
-
-*   **No NAT Gateways:** NAT Gateways were deliberately excluded from this configuration to avoid the fixed hourly costs associated with AWS managed NAT gateways on a personal testing account. Compute instances are safely isolated in private subnets, and code updates use the pre-baked software packages.
-*   **Dynamic AMI Selection:** Instead of using hardcoded AMI IDs that break over time or across different AWS accounts, the compute module uses a dynamic `aws_ami` data source to fetch the latest stable Amazon Linux 2023 ARM64 image.
