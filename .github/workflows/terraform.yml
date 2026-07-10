@@ -1,0 +1,35 @@
+name: "Terraform CI"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  terraform-ci:
+    name: "Format and Validate"
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Clone the repository code into the GitHub runner
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Step 2: Install the specific Terraform CLI version
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.0"
+
+      # Step 3: Check if the code follows HashiCorp formatting standards
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      # Step 4: Initialize the working directory and validate syntax
+      - name: Terraform Init & Validate
+        run: |
+          terraform init -backend=false
+          terraform validate
