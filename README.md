@@ -4,23 +4,43 @@ An infrastructure-as-code project using modular Terraform to deploy a highly ava
 
 The main goal of this architecture is to separate public-facing entry points from the backend application tier, ensuring that web instances remain isolated from direct internet access.
 
+Infrastructure fully provisioned as code (IaC) with Terraform.
+
+![AWS](https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=amazon-aws&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
+
+---
+
 ## Architecture
 
 This setup provisions a complete network and compute stack from scratch:
 
-*   **VPC Topology:** A custom VPC spanning two Availability Zones. It isolates traffic into public subnet pairs.
-*   **Ingress Control:** An Application Load Balancer (ALB) sits in the public subnets to distribute incoming HTTP traffic.
-*   **Auto Scaling:** An Auto Scaling Group (ASG) manages EC2 instances inside the public subnets. It scales between 2 and 3 instances based on demand.
-*   **Strict Security Groups:** The web instances do not accept traffic directly from the internet. Their security group only allows inbound traffic originating from the ALB's security group.
-*   **Cost Optimization:** Instances run on AWS Graviton (`t4g.micro`) ARM64 architecture, lowering baseline computing costs compared to standard x86 instances.
+```mermaid
+flowchart TD
+    Internet([Internet Traffic]) --> ALB[Application Load Balancer - Public Subnets]
+    subgraph VPC [Custom VPC - Multi-AZ]
+        ALB --> ASG[Auto Scaling Group - EC2 Graviton t4g.micro]
+    end
+```
+
+* **VPC Topology:** A custom VPC spanning two Availability Zones. It isolates traffic into public subnet pairs.
+* **Ingress Control:** An Application Load Balancer (ALB) sits in the public subnets to distribute incoming HTTP traffic.
+* **Auto Scaling:** An Auto Scaling Group (ASG) manages EC2 instances inside the public subnets. It scales between 2 and 3 instances based on demand.
+* **Strict Security Groups:** The web instances do not accept traffic directly from the internet. Their security group only allows inbound traffic originating from the ALB's security group.
+* **Cost Optimization:** Instances run on AWS Graviton (`t4g.micro`) ARM64 architecture, lowering baseline computing costs compared to standard x86 instances.
+
+---
 
 ## Automation (CI/CD)
 
 This repository includes a continuous integration pipeline powered by **GitHub Actions** (`.github/workflows/terraform.yml`). 
 
 On every `push` or `pull_request` to the `main` branch, the runner automatically executes:
-1.  **Code Linting:** Validates that HCL files match standard HashiCorp formatting conventions via `terraform fmt`.
-2.  **Syntax Validation:** Runs a formal sanity check on the code configuration using `terraform validate` to catch configuration defects before cloud deployment.
+1. **Code Linting:** Validates that HCL files match standard HashiCorp formatting conventions via `terraform fmt`.
+2. **Syntax Validation:** Runs a formal sanity check on the code configuration using `terraform validate` to catch configuration defects before cloud deployment.
+
+---
 
 ## Repository Structure
 
@@ -38,30 +58,32 @@ The configuration is modularized to separate core networking from application lo
     └── compute/            # Security Groups, Launch Template, and ASG
 ```
 
+---
+
 ## How to Run It
 
 ### Prerequisites
-*   AWS CLI configured with valid credentials.
-*   Terraform CLI installed (`>= 1.5.0`).
+* AWS CLI configured with valid credentials.
+* Terraform CLI installed (`>= 1.5.0`).
 
 ### Deployment Steps
-1. Initialize the working directory and download module dependencies:
+1. **Initialize the working directory and download module dependencies:**
    ```bash
    terraform init
    ```
 
-2. Format and validate the configuration files:
+2. **Format and validate the configuration files:**
    ```bash
    terraform fmt -recursive
    terraform validate
    ```
 
-3. Review the execution plan to see what resources will be created:
+3. **Review the execution plan to see what resources will be created:**
    ```bash
    terraform plan
    ```
 
-4. Deploy the infrastructure to AWS:
+4. **Deploy the infrastructure to AWS:**
    ```bash
    terraform apply
    ```
